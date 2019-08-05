@@ -1,9 +1,11 @@
 package view;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
+import java.util.LinkedList;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
 import lib.AbsEventEmitter;
@@ -18,8 +20,9 @@ public class SslConnection extends AbsEventEmitter<SslConnection.SslEvents> impl
 	 * An enum that represents the events an 'AbsSslConnection' object can emit.
 	 * @author Janty Azmat
 	 */
-	public enum SslEvents {
-		ResponseReceived,
+	public static enum SslEvents {
+		LineReceived,
+		ReadIterrupted,
 		ServerLost
 	}
 
@@ -42,26 +45,88 @@ public class SslConnection extends AbsEventEmitter<SslConnection.SslEvents> impl
 		this.addEventListener(null, null);
 	}
 
+	/**
+	 * A method run by 'meReadThrd' read-thread to independently read from socket's InputStream.
+	 */
 	private void readRunner() {
-		// TODO:: Reading responses here.
+		final var tmpLine = new LinkedList<byte[]>(); // Holds every line data
+		var tmpRead = 0;
+		try (final var tmpWord = new ByteArrayOutputStream()) { // 'tmpWord' holds the bytes of a single word in the read line
+			Runnable tmpRun = () -> { // Just a block of code to avoid code duplication
+				if (tmpWord.size() > 0) {
+					tmpLine.add(tmpWord.toByteArray());
+					tmpWord.reset();
+				}
+			};
+			while ((tmpRead = this.meSock.getInputStream().read()) > -1) {
+				if (tmpRead == 32) {
+					tmpRun.run(); // Extract last formed word (if any)
+				} else if (tmpRead == 13) {
+					continue;
+				} else if (tmpRead == 10) {
+					tmpRun.run(); // Extract last formed word (if any)
+					this.emitEvent(SslEvents.LineReceived, tmpLine.toArray()); // The 'eventData' would be 'byte[][]' in this case
+					tmpLine.clear(); // Start a new line
+				} else {
+					tmpWord.write(tmpRead); // Form part of a word
+				}
+			}
+			if (tmpWord.size() > 0) { // In case there was something left
+				tmpRun.run(); // Extract last formed word (if any)
+				this.emitEvent(SslEvents.LineReceived, tmpLine.toArray()); // The 'eventData' would be 'byte[][]' in this case
+			}
+		} catch (IOException e) {
+			if (!this.meSock.isClosed()) {
+				this.emitEvent(SslEvents.ReadIterrupted);
+			}
+		}
 	}
 
-	public void connect() throws IOException {
+	/**
+	 * Start an SSL connection to server.
+	 * @throws IOException				when a socket cannot be created, error while connecting, or network error while SSL handshake.
+	 * @throws IllegalStateException	when this SslConnection object is already connected to server.
+	 */
+	public void connect() throws IOException, IllegalStateException {
 		if (this.meSock != null && !this.meSock.isClosed()) {
 			throw new IllegalStateException("Already connected.");
 		}
 		this.meSock = (SSLSocket)SSLSocketFactory.getDefault().createSocket();
 		this.meSock.connect(this.meAddr);
 		this.meSock.startHandshake();
-		this.meReadThrd = new Thread(this::readRunner);
+		this.meReadThrd = new Thread(this::readRunner);	// A separate thread to read incoming data
+		this.meReadThrd.start();
 	}
 
-	public void disconnect() throws IOException, InterruptedException {
+	/**
+	 * Sends the specified data using this SslConnection object.
+	 * @param dataToSend				the data to be sent.
+	 * @throws IOException				when an I/O error occurs while writing.
+	 * @throws IllegalStateException	when this SslConnection object is not yet connected to server.
+	 */
+	public void send(byte[] dataToSend) throws IOException, IllegalStateException {
+		if (this.meSock == null || !this.meSock.isConnected()) {
+			throw new IllegalStateException("Not yet connected.");
+		}
+		this.meSock.getOutputStream().write(dataToSend);
+	}
+
+	/**
+	 * Stops the currently established SSL connection to server if any.
+	 * @throws IOException	when an I/O error occurs while closing.
+	 */
+	public void disconnect() throws IOException {
 		if (this.meSock != null && !this.meSock.isClosed()) {
 			if (!this.meSock.isInputShutdown()) {
 				this.meSock.getInputStream().close();	// Seem better this way to prevent unneeded
 //				this.meSock.shutdownInput();			// exception when closing socket
-				this.meReadThrd.join();
+				if (Thread.currentThread() != this.meReadThrd) {
+					try {
+						this.meReadThrd.join();
+					} catch (InterruptedException e) {
+						Thread.currentThread().interrupt();
+					}
+				}
 			}
 			if (!this.meSock.isOutputShutdown()) {
 				this.meSock.getOutputStream().close();

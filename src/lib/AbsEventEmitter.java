@@ -5,7 +5,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.function.Consumer;
+import java.util.function.BiConsumer;
 
 /**
  * An abstract class that represents an event-emitter with with base methods that make it easier to handle listeners.
@@ -15,7 +15,7 @@ import java.util.function.Consumer;
  */
 public abstract class AbsEventEmitter<Ev extends Enum<Ev>> {
 	// Fields
-	private Map<Ev, Set<Consumer<AbsEventEmitter<Ev>>>> meListeners;
+	private Map<Ev, Set<BiConsumer<AbsEventEmitter<Ev>, Object>>> meListeners;
 
 	/**
 	 * Constructor that takes the enumeration class (that holds the events constants) as a parameter.
@@ -35,7 +35,7 @@ public abstract class AbsEventEmitter<Ev extends Enum<Ev>> {
 	 * @param eventListener	the event listener to be added.
 	 * @return				'true' if 'eventListener' was not already added.
 	 */
-	public boolean addEventListener(Ev theEvent, Consumer<AbsEventEmitter<Ev>> eventListener) {
+	public boolean addEventListener(Ev theEvent, BiConsumer<AbsEventEmitter<Ev>, Object> eventListener) {
 		Objects.requireNonNull(theEvent, "The 'theEvent' argument cannot be 'null'.");
 		Objects.requireNonNull(eventListener, "The 'eventListener' argument cannot be 'null'.");
 		return this.meListeners.get(theEvent).add(eventListener);
@@ -47,7 +47,7 @@ public abstract class AbsEventEmitter<Ev extends Enum<Ev>> {
 	 * @param eventListener	the event listener to be removed.
 	 * @return				'true' if the specified listener was there and was removed.
 	 */
-	public boolean removeEventListener(Ev theEvent, Consumer<AbsEventEmitter<Ev>> eventListener) {
+	public boolean removeEventListener(Ev theEvent, BiConsumer<AbsEventEmitter<Ev>, Object> eventListener) {
 		return this.meListeners.get(theEvent).remove(eventListener);
 	}
 
@@ -56,7 +56,16 @@ public abstract class AbsEventEmitter<Ev extends Enum<Ev>> {
 	 * @param theEvent	the event to be emitted.
 	 */
 	protected void emitEvent(Ev theEvent) {
+		this.emitEvent(theEvent, null);
+	}
+
+	/**
+	 * Emits the specified event by/and invoking all the listeners associated with the event.
+	 * @param theEvent	the event to be emitted.
+	 * @param eventData	the extra data to be sent about the event (can be null).
+	 */
+	protected void emitEvent(Ev theEvent, Object eventData) {
 		Objects.requireNonNull(theEvent, "The 'theEvent' argument cannot be 'null'.");
-		this.meListeners.get(theEvent).forEach(ev -> ev.accept(this));
+		this.meListeners.get(theEvent).forEach(ev -> ev.accept(this, eventData));
 	}
 }
