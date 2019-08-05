@@ -42,7 +42,6 @@ public class SslConnection extends AbsEventEmitter<SslConnection.SslEvents> impl
 	public SslConnection(String serverAddress, int serverPort) throws UnknownHostException, SecurityException, IllegalArgumentException {
 		super(SslEvents.class);
 		this.meAddr = new InetSocketAddress(InetAddress.getByName(serverAddress), serverPort);
-		this.addEventListener(null, null);
 	}
 
 	/**
