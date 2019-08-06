@@ -21,9 +21,8 @@ public class SslConnection extends AbsEventEmitter<SslConnection.SslEvents> impl
 	 * @author Janty Azmat
 	 */
 	public static enum SslEvents {
-		LineReceived,
-		ReadIterrupted,
-		ServerLost
+		LINE_RECEIVED,
+		RECEIVE_ITERRUPTED
 	}
 
 	// Fields
@@ -47,7 +46,7 @@ public class SslConnection extends AbsEventEmitter<SslConnection.SslEvents> impl
 	/**
 	 * A method run by 'meReadThrd' read-thread to independently read from socket's InputStream.
 	 */
-	private void readRunner() {
+	private void receiveRunner() {
 		final var tmpLine = new LinkedList<byte[]>(); // Holds every line data
 		var tmpRead = 0;
 		try (final var tmpWord = new ByteArrayOutputStream()) { // 'tmpWord' holds the bytes of a single word in the read line
@@ -60,23 +59,21 @@ public class SslConnection extends AbsEventEmitter<SslConnection.SslEvents> impl
 			while ((tmpRead = this.meSock.getInputStream().read()) > -1) {
 				if (tmpRead == 32) {
 					tmpRun.run(); // Extract last formed word (if any)
-				} else if (tmpRead == 13) {
-					continue;
 				} else if (tmpRead == 10) {
 					tmpRun.run(); // Extract last formed word (if any)
-					this.emitEvent(SslEvents.LineReceived, tmpLine.toArray()); // The 'eventData' would be 'byte[][]' in this case
+					this.emitEvent(SslEvents.LINE_RECEIVED, tmpLine.toArray()); // The 'eventData' would be 'byte[][]' in this case
 					tmpLine.clear(); // Start a new line
-				} else {
+				} else if (tmpRead != 13) {
 					tmpWord.write(tmpRead); // Form part of a word
 				}
 			}
 			if (tmpWord.size() > 0) { // In case there was something left
 				tmpRun.run(); // Extract last formed word (if any)
-				this.emitEvent(SslEvents.LineReceived, tmpLine.toArray()); // The 'eventData' would be 'byte[][]' in this case
+				this.emitEvent(SslEvents.LINE_RECEIVED, tmpLine.toArray()); // The 'eventData' would be 'byte[][]' in this case
 			}
 		} catch (IOException e) {
 			if (!this.meSock.isClosed()) {
-				this.emitEvent(SslEvents.ReadIterrupted);
+				this.emitEvent(SslEvents.RECEIVE_ITERRUPTED);
 			}
 		}
 	}
@@ -93,7 +90,7 @@ public class SslConnection extends AbsEventEmitter<SslConnection.SslEvents> impl
 		this.meSock = (SSLSocket)SSLSocketFactory.getDefault().createSocket();
 		this.meSock.connect(this.meAddr);
 		this.meSock.startHandshake();
-		this.meReadThrd = new Thread(this::readRunner);	// A separate thread to read incoming data
+		this.meReadThrd = new Thread(this::receiveRunner);	// A separate thread to read incoming data
 		this.meReadThrd.start();
 	}
 
