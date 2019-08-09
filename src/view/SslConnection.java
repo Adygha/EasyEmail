@@ -8,19 +8,19 @@ import java.net.UnknownHostException;
 import java.util.LinkedList;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
-import lib.AbsEventEmitter;
+import lib.EventEmitter;
 
 /**
  * A class that represents a secure connection to an email server.
  * @author Janty Azmat
  */
-public class SslConnection extends AbsEventEmitter<SslConnection.SslEvents> implements AutoCloseable {
+public class SslConnection extends EventEmitter<SslConnection.ConnectionEvent> implements AutoCloseable {
 
 	/**
 	 * An enum that represents the events an 'AbsSslConnection' object can emit.
 	 * @author Janty Azmat
 	 */
-	public static enum SslEvents {
+	public static enum ConnectionEvent {
 		LINE_RECEIVED,
 		RECEIVE_ITERRUPTED
 	}
@@ -39,7 +39,7 @@ public class SslConnection extends AbsEventEmitter<SslConnection.SslEvents> impl
 	 * @throws IllegalArgumentException	when invalid port specified.
 	 */
 	public SslConnection(String serverAddress, int serverPort) throws UnknownHostException, SecurityException, IllegalArgumentException {
-		super(SslEvents.class);
+		super(ConnectionEvent.class);
 		this.meAddr = new InetSocketAddress(InetAddress.getByName(serverAddress), serverPort);
 	}
 
@@ -61,7 +61,7 @@ public class SslConnection extends AbsEventEmitter<SslConnection.SslEvents> impl
 					tmpRun.run(); // Extract last formed word (if any)
 				} else if (tmpRead == 10) {
 					tmpRun.run(); // Extract last formed word (if any)
-					this.emitEvent(SslEvents.LINE_RECEIVED, tmpLine.toArray()); // The 'eventData' would be 'byte[][]' in this case
+					this.emitEvent(ConnectionEvent.LINE_RECEIVED, tmpLine.toArray()); // The 'eventData' would be 'byte[][]' in this case
 					tmpLine.clear(); // Start a new line
 				} else if (tmpRead != 13) {
 					tmpWord.write(tmpRead); // Form part of a word
@@ -69,11 +69,11 @@ public class SslConnection extends AbsEventEmitter<SslConnection.SslEvents> impl
 			}
 			if (tmpWord.size() > 0) { // In case there was something left
 				tmpRun.run(); // Extract last formed word (if any)
-				this.emitEvent(SslEvents.LINE_RECEIVED, tmpLine.toArray()); // The 'eventData' would be 'byte[][]' in this case
+				this.emitEvent(ConnectionEvent.LINE_RECEIVED, tmpLine.toArray()); // The 'eventData' would be 'byte[][]' in this case
 			}
 		} catch (IOException e) {
 			if (!this.meSock.isClosed()) {
-				this.emitEvent(SslEvents.RECEIVE_ITERRUPTED);
+				this.emitEvent(ConnectionEvent.RECEIVE_ITERRUPTED);
 			}
 		}
 	}
