@@ -1,8 +1,6 @@
-/**
- *
- */
 package view;
 
+import lib.ConstraintData;
 import lib.IEventEmitter;
 
 /**
@@ -19,19 +17,31 @@ public interface IEmailDisplay extends IEventEmitter<IEmailDisplay.EmailDisplayE
 		EXIT_REQUESTED
 	}
 
-	static enum MsgType {
-		INFORMATION,
-		WARNING,
-		ERROR
-	}
+	void startDisplay();
 
-	void askForCredentials();
+	ConstraintData requestData(String dataTitle, String dataMsg, ConstraintData requestedData);
 
 	void displayEamilList();
 
 	void displayEmailData();
 
-	void displayMesssage(String theMsg, MsgType msgType);
+	/**
+	 * Used to display an information message to the user.
+	 * @param infoMsg	the information message.
+	 */
+	void displayInformation(String infoMsg);
+
+	/**
+	 * Used to display a warning message to the user
+	 * @param warningMsg	the warning message.
+	 */
+	void displayWarning(String warningMsg);
+
+	/**
+	 * Used to display an error message to the user.
+	 * @param errorMsg	the error message.
+	 */
+	void displayError(String errorMsg);
 
 	void exit();
 }
