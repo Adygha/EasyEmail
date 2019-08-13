@@ -2,6 +2,7 @@ package lib;
 
 import java.util.NoSuchElementException;
 import java.util.Objects;
+import java.util.StringJoiner;
 import java.util.function.Predicate;
 
 /**
@@ -13,45 +14,61 @@ public class Constraint<X> {
 	private X meVal;
 	private Class<X> meClass;
 	private String meName;
+	private boolean meIsConfid;
 	private boolean meIsMand;
 	private Predicate<X> meValidator;
 	private String meInvMsg;
 
 	/**
-	 * A constructor the takes the type and name as parameters (the new Constraint object is not mandatory and its validator only checks for 'null').
+	 * A constructor the takes the type and name as parameters (the new Constraint object is not confidential, not mandatory, and its
+	 * validator only checks for 'null').
 	 * @param constraintType			the type (class) of the value of this new Constraint object.
 	 * @param constraintName			the name for the new Constraint object.
 	 * @throws NullPointerException		when the specified type or name for the new Constraint object is 'null'.
 	 */
 	public Constraint(Class<X> constraintType, String constraintName) throws NullPointerException {
-		this(constraintType, constraintName, false, null, null);
+		this(constraintType, constraintName, false, false, null, null);
+	}
+
+	/**
+	 * A constructor the takes the type and name as parameters (the new Constraint object is not mandatory and its validator only checks for 'null').
+	 * @param constraintType			the type (class) of the value of this new Constraint object.
+	 * @param constraintName			the name for the new Constraint object.
+	 * @param isConfidential			specifies if the value for the new Constraint object is confidential (and should be hidden like in passwords).
+	 * @throws NullPointerException		when the specified type or name for the new Constraint object is 'null'.
+	 */
+	public Constraint(Class<X> constraintType, String constraintName, boolean isConfidential) throws NullPointerException {
+		this(constraintType, constraintName, isConfidential, false, null, null);
 	}
 
 	/**
 	 * A constructor the takes the type, name, and mandatory-check as parameters (the new Constraint object's validator only checks for 'null').
 	 * @param constraintType			the type (class) of the value of this new Constraint object.
 	 * @param constraintName			the name for the new Constraint object.
+	 * @param isConfidential			specifies if the value for the new Constraint object is confidential (and should be hidden like in passwords).
 	 * @param isMandatory				specifies if setting a value for the new Constraint object is mandatory.
 	 * @throws NullPointerException		when the specified type or name for the new Constraint object is 'null'.
 	 */
-	public Constraint(Class<X> constraintType, String constraintName, boolean isMandatory) throws NullPointerException {
-		this(constraintType, constraintName, isMandatory, null, null);
+	public Constraint(Class<X> constraintType, String constraintName, boolean isConfidential, boolean isMandatory) throws NullPointerException {
+		this(constraintType, constraintName, isConfidential, isMandatory, null, null);
 	}
 
 	/**
-	 * A constructor the takes the type, name, mandatory-check, and validator as parameters.
+	 * A constructor the takes the type, name, confidentiality, mandatory-check, validation-message, and validator as parameters.
 	 * @param constraintType			the type (class) of the value of this new Constraint object.
 	 * @param constraintName			the name for the new Constraint object.
+	 * @param isConfidential			specifies if the value for the new Constraint object is confidential (and should be hidden like in passwords).
 	 * @param isMandatory				specifies if setting a value for the new Constraint object is mandatory.
+	 * @param invalidMsg				the message to display when the value for the new Constraint object is invalid.
 	 * @param valueValidator			a validator callback the Constraint object's value.
 	 * @throws NullPointerException		when the specified type or name for the new Constraint object is 'null'.
 	 */
-	public Constraint(Class<X> constraintType, String constraintName, boolean isMandatory, Predicate<X> valueValidator, String invalidMsg) throws NullPointerException {
+	public Constraint(Class<X> constraintType, String constraintName, boolean isConfidential, boolean isMandatory, String invalidMsg, Predicate<X> valueValidator) throws NullPointerException {
 		Objects.requireNonNull(constraintName, "The name for the new Constraint object cannot be 'null'.");
 		this.meClass = constraintType;
 		this.meName = constraintName;
+		this.meIsConfid = isConfidential;
 		this.meIsMand = isMandatory;
-		this.meValidator = valueValidator == null ? (val) -> val != null : valueValidator;
 		if (valueValidator == null && invalidMsg == null) {
 			this.meInvMsg = "Privided value cannot be null.";
 		} else if (invalidMsg == null) {
@@ -59,6 +76,7 @@ public class Constraint<X> {
 		} else {
 			this.meInvMsg = invalidMsg;
 		}
+		this.meValidator = valueValidator == null ? (val) -> val != null : valueValidator; // Default it to a 'null-not-accepted' validation
 	}
 
 	/**
@@ -78,11 +96,11 @@ public class Constraint<X> {
 	}
 
 	/**
-	 * Used to get the message displayed when invalid data provided.
-	 * @return	the message displayed when invalid data provided.
+	 * Checks if the value for this Constraint object is confidential (and should be hidden like in passwords).
+	 * @return	'true' if the value for this Constraint object is confidential.
 	 */
-	public String getInvalidMessage() {
-		return meInvMsg;
+	public boolean isConfidential() {
+		return meIsConfid;
 	}
 
 	/**
@@ -91,6 +109,14 @@ public class Constraint<X> {
 	 */
 	public boolean isMandatory() {
 		return this.meIsMand;
+	}
+
+	/**
+	 * Used to get the message displayed when invalid data provided.
+	 * @return	the message displayed when invalid data provided.
+	 */
+	public String getInvalidMessage() {
+		return meInvMsg;
 	}
 
 	/**
@@ -116,7 +142,7 @@ public class Constraint<X> {
 	 * @throws NoSuchElementException	when the value of this Constraint object is not set yet.
 	 */
 	public X getValue() throws NoSuchElementException {
-		if (this.meVal != null) {
+		if (this.meVal == null) {
 			throw new NoSuchElementException("This Constraint object's value is not set.");
 		}
 		return this.meVal;
@@ -137,9 +163,18 @@ public class Constraint<X> {
 	}
 
 	/**
-	 * Resets this Constraint object and clears its value.
+	 * Resets this Constraint object and clears its value ('null' cannot be used with 'setValue').
 	 */
 	public void reset() {
 		this.meVal = null;
+	}
+
+	@Override
+	public String toString() {
+		StringJoiner outJoin = new StringJoiner(", ", "{", "}");
+		outJoin.add(this.getName());
+		outJoin.add(this.getConstraintTypeClass().getSimpleName());
+		outJoin.add(this.isValuePresent() ? this.getValue().toString() : "[null]");
+		return outJoin.toString();
 	}
 }

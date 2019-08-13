@@ -1,6 +1,7 @@
 package controller;
 
-import javafx.beans.property.SimpleBooleanProperty;
+import lib.Constraint;
+import lib.ConstraintList;
 import view.IEmailDisplay;
 
 /**
@@ -18,13 +19,16 @@ public class Hive {
 
 	public void start() {
 		this.meView.startDisplay();
-		Boolean tmpBool = Boolean.FALSE;
-		SimpleBooleanProperty tmpProp = new SimpleBooleanProperty(tmpBool);
-		tmpProp.addListener((obs, oldVal, newVal) -> this.meView.displayInformation("Bool changed"));
-		this.meView.displayInformation("Before trigger");
-		tmpBool = Boolean.TRUE;
-		this.meView.displayInformation("Second trigger");
-		tmpProp.set(true);
-//		this.meView.requestData(dataTitle, dataMsg, requestedData)
+		Constraint<String> tmpUserCons = new Constraint<>(String.class, "User Name", false, true, "User name must not be empty or white-space.", str -> str != null && !str.isBlank());
+		Constraint<String> tmpPass = new Constraint<>(String.class, "Password", true);
+		tmpPass.setValue("OldPass");
+		Constraint<Boolean> tmpMandBool = new Constraint<Boolean>(Boolean.class, "Mandatory Bool", false, true, "This must be true.", bol -> bol);
+		Constraint<Boolean> tmpBool = new Constraint<Boolean>(Boolean.class, "This does not matter.");
+		ConstraintList tmpData = new ConstraintList();
+		tmpData.add(tmpUserCons);
+		tmpData.add(tmpPass);
+		tmpData.add(tmpMandBool);
+		tmpData.add(tmpBool);
+		this.meView.displayInformation(this.meView.requestData("Login", "Please login.", tmpData).toString());
 	}
 }

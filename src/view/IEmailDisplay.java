@@ -1,6 +1,6 @@
 package view;
 
-import lib.ConstraintData;
+import lib.ConstraintList;
 import lib.IEventEmitter;
 
 /**
@@ -19,7 +19,7 @@ public interface IEmailDisplay extends IEventEmitter<IEmailDisplay.EmailDisplayE
 
 	void startDisplay();
 
-	ConstraintData requestData(String dataTitle, String dataMsg, ConstraintData requestedData);
+	ConstraintList requestData(String dataTitle, String dataMsg, ConstraintList requestedData);
 
 	void displayEamilList();
 
