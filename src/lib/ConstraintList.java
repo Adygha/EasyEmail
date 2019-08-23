@@ -6,7 +6,7 @@ import java.util.LinkedList;
  * A class that represents a list of Constraint objects with some added functionality to a normal list.
  * @author Janty Azmat
  */
-public class ConstraintList extends LinkedList<Constraint<? extends Object>> {
+public class ConstraintList extends LinkedList<Constraint<?>> {
 	// Fields
 	private static final long serialVersionUID = 2617382012712090285L; // Just to stop the warning
 	private boolean meIsFilled;

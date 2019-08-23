@@ -17,11 +17,19 @@ import lib.EventEmitter;
 public class SslConnection extends EventEmitter<SslConnection.ConnectionEvent> implements AutoCloseable {
 
 	/**
-	 * An enum that represents the events an 'AbsSslConnection' object can emit.
+	 * An enum that represents the events an 'SslConnection' object can emit.
 	 * @author Janty Azmat
 	 */
 	public static enum ConnectionEvent {
+
+		/**
+		 * Informs that a line was received from server.
+		 */
 		LINE_RECEIVED,
+
+		/**
+		 * Informs that receiving data from server was interrupted (most likely due to server dropped the connection).
+		 */
 		RECEIVE_ITERRUPTED
 	}
 

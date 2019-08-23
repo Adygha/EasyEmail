@@ -9,11 +9,19 @@ import lib.IEventEmitter;
  */
 public interface IEmailDisplay extends IEventEmitter<IEmailDisplay.EmailDisplayEvent> {
 
+	/**
+	 * An enumeration that represents the events that an email-display emits.
+	 * @author Janty Azmat
+	 */
 	static enum EmailDisplayEvent {
 		DISPLAY_STARTED,
 //		CREDENTIALS_PROVIDED,
 		EMAIL_LIST_REQUESTED,
 		EMAIL_DATA_REQUESTED,
+
+		/**
+		 * Informs that the user has requested exiting the application.
+		 */
 		EXIT_REQUESTED
 	}
 

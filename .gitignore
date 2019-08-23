@@ -1,7 +1,9 @@
 # MINE
-secu_config/
+[Ww]ork[Ss]pace/
+[Ss]ecu_[Cc]onfig/
 .vscode/
-*.exe
+*.[Ee][Ex][Ee]
+*.[Dd][Ll][Ll]
 *.vcxproj*
 *.sln
 .classpath
