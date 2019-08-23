@@ -2,6 +2,9 @@ package controller;
 
 import model.SystemCredentialsManager;
 import model.SystemCredentialsManager.WindowsCredential;
+//import model.SystemCredentialsManager.WindowsCredential.CredentialFlag;
+//import model.SystemCredentialsManager.WindowsCredential.CredentialPersist;
+//import model.SystemCredentialsManager.WindowsCredential.CredentialType;
 import view.IEmailDisplay;
 
 /**
@@ -21,11 +24,31 @@ public class Hive {
 
 	public void start() {
 		this.meView.startDisplay();
-		SystemCredentialsManager tmpCred = new SystemCredentialsManager("MyApp/");
+		SystemCredentialsManager tmpMan = new SystemCredentialsManager("MyApp/");
 
-		WindowsCredential[] tmpCreds = tmpCred.getWindowsCredentials("azm*");
+		WindowsCredential[] tmpCreds = tmpMan.getWindowsCredentials("*ALLAH");
 		for (var cred : tmpCreds) {
 			this.meView.displayInformation(cred.toString());
 		}
+
+//		WindowsCredential[] tmpCreds = tmpMan.getWindowsCredentialsAll();
+//		for (var cred : tmpCreds) {
+//			this.meView.displayInformation(cred.toString());
+//		}
+
+//		this.meView.displayInformation(
+//				"Error Code: " +
+//				tmpMan.newCredential(new WindowsCredential(
+//							CredentialFlag.CRED_FLAGS_NONE,
+//							CredentialType.CRED_TYPE_GENERIC,
+//							"InTheNameOfALLAH",
+//							"MyComment",
+//							"ABCDEF",
+//							CredentialPersist.CRED_PERSIST_LOCAL_MACHINE,
+//							"SomeAlias",
+//							"LoginUser"
+//						)
+//				)
+//		);
 	}
 }

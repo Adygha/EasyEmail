@@ -24,7 +24,7 @@ public class SystemCredentialsManager {
 
 	public static class WindowsCredential {
 
-		private static enum CredentialFlag {
+		public static enum CredentialFlag {
 //			CRED_FLAGS_NONE(0),
 			CRED_FLAGS_PROMPT_NOW(2),
 			CRED_FLAGS_USERNAME_TARGET(4),
@@ -76,7 +76,7 @@ public class SystemCredentialsManager {
 //			}
 		}
 
-		private static enum CredentialType {
+		public static enum CredentialType {
 			CRED_TYPE_GENERIC(1),
 			CRED_TYPE_DOMAIN_PASSWORD(2),
 			CRED_TYPE_DOMAIN_CERTIFICATE(3),
@@ -84,12 +84,12 @@ public class SystemCredentialsManager {
 			CRED_TYPE_GENERIC_CERTIFICATE(5),
 			CRED_TYPE_DOMAIN_EXTENDED(6),
 			CRED_TYPE_MAXIMUM(7),
-			CRED_TYPE_MAXIMUM_EX(CRED_TYPE_MAXIMUM.getTypeValue() + 1000);
+			CRED_TYPE_MAXIMUM_EX(CRED_TYPE_MAXIMUM.meVal + 1000);
 
 			private static final Map<Integer, CredentialType> stVals = new HashMap<>(CredentialType.values().length);
 			static {
 				for (var val : CredentialType.values()) {
-					CredentialType.stVals.put(val.getTypeValue(), val);
+					CredentialType.stVals.put(val.meVal, val);
 				}
 			}
 			private int meVal;
@@ -98,9 +98,9 @@ public class SystemCredentialsManager {
 				this.meVal = theVal;
 			}
 
-			public int getTypeValue() {
-				return this.meVal;
-			}
+//			public int getTypeValue() {
+//				return this.meVal;
+//			}
 
 			public static CredentialType of(int typeValue) {
 				CredentialType outType = CredentialType.stVals.get(typeValue);
@@ -111,7 +111,7 @@ public class SystemCredentialsManager {
 			}
 		}
 
-		private static enum CredentialPersist {
+		public static enum CredentialPersist {
 			CRED_PERSIST_SESSION(1),
 			CRED_PERSIST_LOCAL_MACHINE(2),
 			CRED_PERSIST_ENTERPRISE(3);
@@ -119,7 +119,7 @@ public class SystemCredentialsManager {
 			private static final Map<Integer, CredentialPersist> stVals = new HashMap<>(CredentialPersist.values().length);
 			static {
 				for (var val : CredentialPersist.values()) {
-					CredentialPersist.stVals.put(val.getTypeValue(), val);
+					CredentialPersist.stVals.put(val.meVal, val);
 				}
 			}
 			private int meVal;
@@ -128,9 +128,9 @@ public class SystemCredentialsManager {
 				this.meVal = theVal;
 			}
 
-			public int getTypeValue() {
-				return this.meVal;
-			}
+//			public int getPersistValue() {
+//				return this.meVal;
+//			}
 
 			public static CredentialPersist of(int typeValue) {
 				CredentialPersist outPers = CredentialPersist.stVals.get(typeValue);
@@ -143,41 +143,43 @@ public class SystemCredentialsManager {
 
 		// Fields
 		private EnumSet<CredentialFlag> meFlags;
-		private CredentialType meType;
+		private int meType;
 		private String meTargetName;
 		private String meComment;
 		private Instant meLastModified;
 		private byte[] meBytePassword;
-		private CredentialPersist mePersist;
+		private int mePersist;
 		private Map<String, byte[]> meAttributes;
 		private String meTargetAlias;
 		private String meUserName;
 		private boolean meIsChanged;
 
 		public WindowsCredential(EnumSet<CredentialFlag> credFlags, CredentialType credType, String targetName, String credComment, String credPassword, CredentialPersist credPersist, String credAlias, String userName) {
-			this(credType, targetName, credComment, credPersist, credAlias, userName);
+			this(targetName, credComment, credAlias, userName);
 			this.meFlags = credFlags;
+			this.meType = credType.meVal;
 			this.meLastModified = Instant.now();
 			this.meBytePassword = credPassword.getBytes();
+			this.mePersist = credPersist.meVal;
 		}
 
 		@SuppressWarnings("unused")
 		private WindowsCredential(int bitFlags, int credType, String targetName, String credComment, long lastModified, byte[] credPassword, int credPersist, Entry<String, byte[]>[] credAttribs, String credTargetAlias, String userName) {
-			this(CredentialType.of(credType), targetName, credComment, CredentialPersist.of(credPersist), credTargetAlias, userName);
+			this(targetName, credComment, credTargetAlias, userName);
 			this.meFlags = CredentialFlag.of(bitFlags);
+			this.meType = credType;
 			this.meLastModified = Instant.ofEpochMilli((lastModified  - 116444736000000000L) / 10000L);
 			this.meBytePassword = credPassword;
+			this.mePersist = credPersist;
 			for (var entry : credAttribs) {
 				this.meAttributes.put(entry.getKey(), entry.getValue());
 			}
 		}
 
-		private WindowsCredential(CredentialType credType, String targetName, String credComment, CredentialPersist credPersist, String credTargetAlias, String userName) {
+		private WindowsCredential(String targetName, String credComment, String credTargetAlias, String userName) {
 			this.meAttributes = new LinkedHashMap<>();
-			this.meType = credType;
 			this.meTargetName = targetName;
 			this.meComment = credComment;
-			this.mePersist = credPersist;
 			this.meTargetAlias = credTargetAlias;
 			this.meUserName = userName;
 		}
@@ -205,7 +207,7 @@ public class SystemCredentialsManager {
 		 * @return the type
 		 */
 		public CredentialType getType() {
-			return this.meType;
+			return CredentialType.of(this.meType);
 		}
 
 		/**
@@ -271,15 +273,15 @@ public class SystemCredentialsManager {
 		 * @return the persist
 		 */
 		public CredentialPersist getPersist() {
-			return this.mePersist;
+			return CredentialPersist.of(this.mePersist);
 		}
 
 		/**
 		 * @param persist the persist to set
 		 */
 		public void setPersist(CredentialPersist newPersist) {
-			if (this.mePersist != newPersist) {
-				this.mePersist = newPersist;
+			if (this.mePersist != newPersist.meVal) {
+				this.mePersist = newPersist.meVal;
 				this.meIsChanged = true;
 			}
 		}
@@ -383,7 +385,11 @@ public class SystemCredentialsManager {
 	}
 
 	public WindowsCredential getWindowsCredential(String credTarget, WindowsCredential.CredentialType credType) {
-		return SystemCredentialsManager.getCred(this.mePrefix + credTarget, credType.getTypeValue());
+		return SystemCredentialsManager.getCred(this.mePrefix + credTarget, credType.meVal);
+	}
+
+	public int newCredential(WindowsCredential newCred) {
+		return SystemCredentialsManager.newCred(newCred);
 	}
 
 	public void updateCredential(WindowsCredential updatedCred) {
