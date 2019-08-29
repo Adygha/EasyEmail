@@ -4,9 +4,23 @@
 
 #ifndef _Included_model_SystemCredentialsManager
 #define _Included_model_SystemCredentialsManager
+
+#ifdef EASYRUNDLL
+#undef EASYRUNDLL
+#endif // EASYRUNDLL
+
+#ifdef EASYRUNDLL_EXPORTS
+#define EASYRUNDLL __declspec(dllexport)
+#else
+#define EASYRUNDLL __declspec(dllimport)
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+	EASYRUNDLL void CALLBACK ElevMain(HWND, HINSTANCE, LPTSTR, int);
+
 	/*
 	 * Class:     model_SystemCredentialsManager
 	 * Method:    getCreds
@@ -34,6 +48,20 @@ extern "C" {
 	 * Signature: (Lmodel/SystemCredentialsManager/WindowsCredential;)I
 	 */
 	JNIEXPORT jint JNICALL Java_model_SystemCredentialsManager_updateCred(JNIEnv *, jclass, jobject);
+
+	/*
+	 * Class:     model_SystemCredentialsManager
+	 * Method:    deleteCred
+	 * Signature: (Ljava/lang/String;I)I
+	 */
+	JNIEXPORT jint JNICALL Java_model_SystemCredentialsManager_deleteCred(JNIEnv *, jclass, jstring, jint);
+
+	/*
+	 * Class:     model_SystemCredentialsManager
+	 * Method:    getErrMsg
+	 * Signature: (I)Ljava/lang/String;
+	 */
+	JNIEXPORT jstring JNICALL Java_model_SystemCredentialsManager_getErrMsg(JNIEnv *, jclass, jint);
 
 #ifdef __cplusplus
 }

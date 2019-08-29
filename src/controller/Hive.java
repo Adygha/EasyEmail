@@ -1,10 +1,5 @@
 package controller;
 
-import model.SystemCredentialsManager;
-import model.SystemCredentialsManager.WindowsCredential;
-//import model.SystemCredentialsManager.WindowsCredential.CredentialFlag;
-//import model.SystemCredentialsManager.WindowsCredential.CredentialPersist;
-//import model.SystemCredentialsManager.WindowsCredential.CredentialType;
 import view.IEmailDisplay;
 
 /**
@@ -24,31 +19,49 @@ public class Hive {
 
 	public void start() {
 		this.meView.startDisplay();
-		SystemCredentialsManager tmpMan = new SystemCredentialsManager("MyApp/");
+//		model.SystemCredentialsManager tmpMan = new model.SystemCredentialsManager("MyApp/MyCred");
 
-		WindowsCredential[] tmpCreds = tmpMan.getWindowsCredentials("*ALLAH");
-		for (var cred : tmpCreds) {
-			this.meView.displayInformation(cred.toString());
-		}
+//		int tmpErrCode = model.SystemCredentialsManager.deleteCredential("InTheNameOfALLAH", model.SystemCredentialsManager.WindowsCredential.CredentialType.CRED_TYPE_DOMAIN_PASSWORD);
 
-//		WindowsCredential[] tmpCreds = tmpMan.getWindowsCredentialsAll();
+
+//		model.SystemCredentialsManager.WindowsCredential[] tmpCreds = model.SystemCredentialsManager.getWindowsCredentials("*ALLAH");
 //		for (var cred : tmpCreds) {
 //			this.meView.displayInformation(cred.toString());
 //		}
 
-//		this.meView.displayInformation(
-//				"Error Code: " +
-//				tmpMan.newCredential(new WindowsCredential(
-//							CredentialFlag.CRED_FLAGS_NONE,
-//							CredentialType.CRED_TYPE_GENERIC,
-//							"InTheNameOfALLAH",
-//							"MyComment",
-//							"ABCDEF",
-//							CredentialPersist.CRED_PERSIST_LOCAL_MACHINE,
-//							"SomeAlias",
-//							"LoginUser"
-//						)
-//				)
+//		model.SystemCredentialsManager.WindowsCredential[] tmpCreds = model.SystemCredentialsManager.getWindowsCredentialsAll();
+//		for (var cred : tmpCreds) {
+//			this.meView.displayInformation(cred.toString());
+//		}
+
+		this.meView.displayInformation("" + model.SystemCredentialsManager.getWindowsCredential("InTheNameOfALLAH", model.SystemCredentialsManager.WindowsCredential.CredentialType.CRED_TYPE_GENERIC));
+
+//		for (var attr : model.SystemCredentialsManager.getWindowsCredential("MicrosoftAccount:target=SSO_POP_Device", model.SystemCredentialsManager.WindowsCredential.CredentialType.CRED_TYPE_GENERIC).getByteAttributes()) {
+//			this.meView.displayInformation(attr.getKey() + ":\n" + java.util.Arrays.toString(attr.getValue()));
+//		}
+
+//		for (var attr : model.SystemCredentialsManager.getWindowsCredential("WindowsLive:target=virtualapp/didlogical", model.SystemCredentialsManager.WindowsCredential.CredentialType.CRED_TYPE_GENERIC).getByteAttributes()) {
+//			this.meView.displayInformation(attr.getKey() + ":\n" + java.util.Arrays.toString(attr.getValue()));
+//		}
+
+
+//		var tmpCred = new model.SystemCredentialsManager.WindowsCredential(
+//			model.SystemCredentialsManager.WindowsCredential.CredentialFlag.CRED_FLAGS_NONE,
+//			model.SystemCredentialsManager.WindowsCredential.CredentialType.CRED_TYPE_DOMAIN_PASSWORD,
+//			"InTheNameOfALLAH",
+//			"MyComment",
+//			"ABCDEF",
+//			model.SystemCredentialsManager.WindowsCredential.CredentialPersist.CRED_PERSIST_LOCAL_MACHINE,
+//			"SomeAlias",
+//			"LoginUser"
 //		);
+//		int tmpErrCode = model.SystemCredentialsManager.newCredential(tmpCred);
+
+
+//		if (tmpErrCode == 0) {
+//			this.meView.displayInformation("Success..");
+//		} else {
+//			this.meView.displayWarning(model.SystemCredentialsManager.getErrorMessage(tmpErrCode));
+//		}
 	}
 }

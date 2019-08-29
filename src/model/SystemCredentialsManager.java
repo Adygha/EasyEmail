@@ -1,8 +1,9 @@
 package model;
 
+import java.nio.charset.Charset;
 import java.time.Instant;
-import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.AbstractMap.SimpleEntry;
 import java.util.Arrays;
@@ -13,6 +14,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.StringJoiner;
+import model.SystemCredentialsManager.WindowsCredential.CredentialType;
 
 /**
  * @author Janty Azmat
@@ -142,6 +144,8 @@ public class SystemCredentialsManager {
 		}
 
 		// Fields
+		private static final boolean me_IS_PRETTY_TO_STRING = true;
+		private static final Charset me_CHARSET = Charset.forName("UTF-16LE");
 		private EnumSet<CredentialFlag> meFlags;
 		private int meType;
 		private String meTargetName;
@@ -159,8 +163,9 @@ public class SystemCredentialsManager {
 			this.meFlags = credFlags;
 			this.meType = credType.meVal;
 			this.meLastModified = Instant.now();
-			this.meBytePassword = credPassword.getBytes();
+			this.setPassword(credPassword);
 			this.mePersist = credPersist.meVal;
+			this.meIsChanged = false;
 		}
 
 		@SuppressWarnings("unused")
@@ -169,11 +174,12 @@ public class SystemCredentialsManager {
 			this.meFlags = CredentialFlag.of(bitFlags);
 			this.meType = credType;
 			this.meLastModified = Instant.ofEpochMilli((lastModified  - 116444736000000000L) / 10000L);
-			this.meBytePassword = credPassword;
+			this.meBytePassword = credPassword == null ? new byte[0] : credPassword;
 			this.mePersist = credPersist;
 			for (var entry : credAttribs) {
 				this.meAttributes.put(entry.getKey(), entry.getValue());
 			}
+			this.meIsChanged = false;
 		}
 
 		private WindowsCredential(String targetName, String credComment, String credTargetAlias, String userName) {
@@ -237,9 +243,9 @@ public class SystemCredentialsManager {
 		/**
 		 * @return the lastModifiedEpoch
 		 */
-		public LocalDateTime getLastModified() {
+		public ZonedDateTime getLastModified() {
 //			return LocalDateTime.ofEpochSecond((this.meLastModifiedEpoch - 116444736000000000L) / 10000000, 0, OffsetDateTime.now().getOffset());
-			return LocalDateTime.ofInstant(this.meLastModified, ZoneId.systemDefault());
+			return ZonedDateTime.ofInstant(this.meLastModified, ZoneId.systemDefault());
 		}
 
 		/**
@@ -253,18 +259,20 @@ public class SystemCredentialsManager {
 		 * @return the password
 		 */
 		public String getPassword() {
-			return this.meBytePassword.length == 0 ? null : new String(this.meBytePassword);
+			return this.meBytePassword.length == 0 ? null : new String(this.meBytePassword, WindowsCredential.me_CHARSET);
 		}
 
 		/**
 		 * @param newPassword
 		 */
 		public void setPassword(String newPassword) {
-			if (newPassword == null) {
-				newPassword = "";
-			}
-			if (!newPassword.equals(this.getPassword())) {
-				this.meBytePassword = newPassword.getBytes();
+			if (newPassword == null || newPassword.isEmpty()) {
+				if (this.meBytePassword == null || this.meBytePassword.length != 0) {
+					this.meBytePassword = new byte[0];
+					this.meIsChanged = true;
+				}
+			} else if (this.meBytePassword == null || !newPassword.equals(this.getPassword())) {
+				this.meBytePassword = newPassword.getBytes(WindowsCredential.me_CHARSET);
 				this.meIsChanged = true;
 			}
 		}
@@ -291,7 +299,8 @@ public class SystemCredentialsManager {
 		 */
 		@SuppressWarnings("unchecked")
 		public Entry<String, String>[] getAttributes() {
-			return this.meAttributes.entrySet().stream().map(attr -> new SimpleEntry<String, String>(attr.getKey(), new String(attr.getValue()))).toArray(Entry[]::new);
+			return this.meAttributes.entrySet().stream()
+					.map(attr -> new SimpleEntry<String, String>(attr.getKey(), new String(attr.getValue()))).toArray(Entry[]::new);
 //			this.meAttributes.entrySet().stream().toArray(attr -> new SimpleEntry<String, String>(attr.getKey(), new String(attr.getValue())));
 		}
 
@@ -341,28 +350,29 @@ public class SystemCredentialsManager {
 
 		@Override
 		public String toString() {
-			StringJoiner outJoin = new StringJoiner(",\n\t", "{\n\t", "\n}");
-			outJoin.add("Target Name: " + this.getTargetName());
-			outJoin.add("Target Alias: " + this.getTargetAlias());
-			outJoin.add("Flags: " + this.getFlags());
+			StringJoiner outJoin = WindowsCredential.me_IS_PRETTY_TO_STRING ? new StringJoiner(",\n\t", "{\n\t", "\n}") : new StringJoiner(", ", "{", "}");
+			outJoin.add("Target Name: " + this.meTargetName);
+			outJoin.add("Target Alias: " + this.meTargetAlias);
+			outJoin.add("Flags: " + this.meFlags);
 			outJoin.add("Type: " + this.getType());
-			outJoin.add("User Name: " + this.getUserName());
-			outJoin.add("BytePassword: " + this.getBytePassword().length);
-			outJoin.add("Password: " + this.getPassword());
-			outJoin.add("Comment: " + this.getComment());
-			outJoin.add("Modified DateTime: " + this.getLastModified().atZone(ZoneId.systemDefault()).format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
-			outJoin.add("Attributes: " + Arrays.toString(this.getAttributes()));
+			outJoin.add("Comment: " + this.meComment);
+			outJoin.add("Modified DateTime: " + this.getLastModified()
+					.format(DateTimeFormatter.ofPattern("yyyy-MM-dd '['hh:mm:ss a']' '['Z 'GMT]'")));
 			outJoin.add("Persist: " + this.getPersist());
+			outJoin.add("User Name: " + this.meUserName);
+			outJoin.add("BytePassword: " + Arrays.toString(this.meBytePassword));
+			outJoin.add("Password: " + this.getPassword());
+			outJoin.add("Attributes: " + Arrays.toString(this.getAttributes()));
 			return outJoin.toString();
 		}
 	}
 
 	// Fields
-	private String mePrefix;
-
-	public SystemCredentialsManager(String credPrefix) {
-		this.mePrefix = credPrefix;
-	}
+//	private String mePrefix;
+//
+//	public SystemCredentialsManager(String credPrefix) {
+//		this.mePrefix = credPrefix;
+//	}
 
 	private static native WindowsCredential[] getCreds(String credFilter, boolean isAll);
 
@@ -372,44 +382,62 @@ public class SystemCredentialsManager {
 
 	private static native int updateCred(WindowsCredential updatedCred);
 
-	public WindowsCredential[] getWindowsCredentials() {
+	private static native int deleteCred(String credTarget, int credType);
+
+	private static native String getErrMsg(int errCode);
+
+	public static WindowsCredential[] getWindowsCredentials() {
 		return SystemCredentialsManager.getCreds(null, false);
 	}
 
-	public WindowsCredential[] getWindowsCredentials(String credFilter) {
+	public static WindowsCredential[] getWindowsCredentials(String credFilter) {
 		return SystemCredentialsManager.getCreds(credFilter, false);
 	}
 
-	public WindowsCredential[] getWindowsCredentialsAll() {
+	public static WindowsCredential[] getWindowsCredentialsAll() {
 		return SystemCredentialsManager.getCreds(null, true);
 	}
 
-	public WindowsCredential getWindowsCredential(String credTarget, WindowsCredential.CredentialType credType) {
-		return SystemCredentialsManager.getCred(this.mePrefix + credTarget, credType.meVal);
+	public static WindowsCredential getWindowsCredential(String credTarget, CredentialType credType) {
+		return SystemCredentialsManager.getCred(credTarget, credType.meVal);
 	}
 
-	public int newCredential(WindowsCredential newCred) {
+	public static int newCredential(WindowsCredential newCred) {
 		return SystemCredentialsManager.newCred(newCred);
 	}
 
-	public void updateCredential(WindowsCredential updatedCred) {
+	public static int updateCredential(WindowsCredential updatedCred) {
+		int outExitCode = 0;
 		if (updatedCred.meIsChanged) {
-			SystemCredentialsManager.updateCred(updatedCred);
+			outExitCode = SystemCredentialsManager.updateCred(updatedCred);
 			updatedCred.meIsChanged = false;
 		}
+		return outExitCode;
 	}
 
-	/**
-	 * @return	the prefix
-	 */
-	public String getPrefix() {
-		return this.mePrefix;
+	public static int deleteCredential(WindowsCredential updatedCred) {
+		return SystemCredentialsManager.deleteCred(updatedCred.meTargetName, updatedCred.meType);
 	}
 
-	/**
-	 * @param newPrefix		the new prefix
-	 */
-	public void setPrefix(String newPrefix) {
-		this.mePrefix = newPrefix;
+	public static int deleteCredential(String credTarget, CredentialType credType) {
+		return SystemCredentialsManager.deleteCred(credTarget, credType.meVal);
 	}
+
+	public static String getErrorMessage(int errorCode) {
+		return SystemCredentialsManager.getErrMsg(errorCode);
+	}
+
+//	/**
+//	 * @return	the prefix
+//	 */
+//	public String getPrefix() {
+//		return this.mePrefix;
+//	}
+//
+//	/**
+//	 * @param newPrefix		the new prefix
+//	 */
+//	public void setPrefix(String newPrefix) {
+//		this.mePrefix = newPrefix;
+//	}
 }
